@@ -1,0 +1,336 @@
+image: hashicorp/terraform:1.9.0
+
+stages:
+  - validate
+  - compliance
+  - trigger_tfe
+
+variables:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+.terraform_env:
+  before_script:
+    - terraform --version
+
+.trigger_tfe_env:
+  image: alpine:3.20
+  before_script:
+    - apk add --no-cache curl jq
+
+.nonprod_account_a_changes:
+  rules:
+    - changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-a.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+.nonprod_account_b_changes:
+  rules:
+    - changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-b.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+.prod_account_c_eastus_changes:
+  rules:
+    - changes:
+        - envs/prod/**/*
+        - config/prod/account-c-eastus.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+.prod_account_c_eastus2_changes:
+  rules:
+    - changes:
+        - envs/prod/**/*
+        - config/prod/account-c-eastus2.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+.prod_account_d_centralus_changes:
+  rules:
+    - changes:
+        - envs/prod/**/*
+        - config/prod/account-d-centralus.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+.prod_account_d_westus2_changes:
+  rules:
+    - changes:
+        - envs/prod/**/*
+        - config/prod/account-d-westus2.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+.prod_account_c_governance_changes:
+  rules:
+    - changes:
+        - envs/governance/**/*
+        - config/governance/prod/account-c-dr.tfvars
+        - terraform-enterprise-config/**/*
+        - .gitlab-ci.yml
+
+.prod_account_d_governance_changes:
+  rules:
+    - changes:
+        - envs/governance/**/*
+        - config/governance/prod/account-d-dr.tfvars
+        - terraform-enterprise-config/**/*
+        - .gitlab-ci.yml
+
+validate_nonprod:
+  extends: .terraform_env
+  stage: validate
+  script:
+    - terraform fmt -check -recursive
+    - cd envs/nonprod
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - changes:
+        - envs/nonprod/**/*
+        - config/nonprod/**/*
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+validate_prod:
+  extends: .terraform_env
+  stage: validate
+  script:
+    - terraform fmt -check -recursive
+    - cd envs/prod
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - changes:
+        - envs/prod/**/*
+        - config/prod/**/*
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+validate_governance:
+  extends: .terraform_env
+  stage: validate
+  script:
+    - terraform fmt -check -recursive
+    - cd envs/governance
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - changes:
+        - envs/governance/**/*
+        - config/governance/prod/**/*
+        - terraform-enterprise-config/**/*
+        - .gitlab-ci.yml
+
+compliance_nonprod_account_a:
+  extends:
+    - .terraform_env
+    - .nonprod_account_a_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh nonprod envs/nonprod config/nonprod/account-a.tfvars
+  needs:
+    - validate_nonprod
+
+compliance_nonprod_account_b:
+  extends:
+    - .terraform_env
+    - .nonprod_account_b_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh nonprod envs/nonprod config/nonprod/account-b.tfvars
+  needs:
+    - validate_nonprod
+
+compliance_prod_account_c_eastus:
+  extends:
+    - .terraform_env
+    - .prod_account_c_eastus_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh prod envs/prod config/prod/account-c-eastus.tfvars
+  needs:
+    - validate_prod
+
+compliance_prod_account_c_eastus2:
+  extends:
+    - .terraform_env
+    - .prod_account_c_eastus2_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh prod envs/prod config/prod/account-c-eastus2.tfvars
+  needs:
+    - validate_prod
+
+compliance_prod_account_d_centralus:
+  extends:
+    - .terraform_env
+    - .prod_account_d_centralus_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh prod envs/prod config/prod/account-d-centralus.tfvars
+  needs:
+    - validate_prod
+
+compliance_prod_account_d_westus2:
+  extends:
+    - .terraform_env
+    - .prod_account_d_westus2_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh prod envs/prod config/prod/account-d-westus2.tfvars
+  needs:
+    - validate_prod
+
+trigger_tfe_nonprod_account_a:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_NONPROD_ACCOUNT_A" "GitLab ${CI_PIPELINE_ID} triggered nonprod account-a run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_nonprod_account_a
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-a.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_nonprod_account_b:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_NONPROD_ACCOUNT_B" "GitLab ${CI_PIPELINE_ID} triggered nonprod account-b run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_nonprod_account_b
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-b.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_prod_account_c_eastus:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_PROD_ACCOUNT_C_EASTUS" "GitLab ${CI_PIPELINE_ID} triggered prod account-c eastus run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_prod_account_c_eastus
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/prod/**/*
+        - config/prod/account-c-eastus.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_prod_account_c_eastus2:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_PROD_ACCOUNT_C_EASTUS2" "GitLab ${CI_PIPELINE_ID} triggered prod account-c eastus2 run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_prod_account_c_eastus2
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/prod/**/*
+        - config/prod/account-c-eastus2.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_prod_account_d_centralus:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_PROD_ACCOUNT_D_CENTRALUS" "GitLab ${CI_PIPELINE_ID} triggered prod account-d centralus run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_prod_account_d_centralus
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/prod/**/*
+        - config/prod/account-d-centralus.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_prod_account_d_westus2:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_PROD_ACCOUNT_D_WESTUS2" "GitLab ${CI_PIPELINE_ID} triggered prod account-d westus2 run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_prod_account_d_westus2
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/prod/**/*
+        - config/prod/account-d-westus2.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_prod_account_c_governance:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_PROD_ACCOUNT_C_GOVERNANCE" "GitLab ${CI_PIPELINE_ID} triggered prod account-c governance run for ${CI_COMMIT_SHA}"
+  needs:
+    - validate_governance
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/governance/**/*
+        - config/governance/prod/account-c-dr.tfvars
+        - terraform-enterprise-config/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_prod_account_d_governance:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_PROD_ACCOUNT_D_GOVERNANCE" "GitLab ${CI_PIPELINE_ID} triggered prod account-d governance run for ${CI_COMMIT_SHA}"
+  needs:
+    - validate_governance
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/governance/**/*
+        - config/governance/prod/account-d-dr.tfvars
+        - terraform-enterprise-config/**/*
+        - .gitlab-ci.yml

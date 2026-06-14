@@ -1,0 +1,49 @@
+# CODEOWNERS file for terraform-infra repository
+# This file defines the ownership of files in the repository
+# Each line is a file pattern followed by the list of owners (GitHub usernames or email addresses)
+
+# Root level files
+/.gitlab-ci.yml @sagar
+/README.md @sagar
+/terraform.tfstate @sagar
+/terraform.tfstate.backup @sagar
+
+# Modules directory
+/modules/aks/ @sagar
+/modules/keyvault/ @sagar
+/modules/acr/ @sagar
+/modules/vnet/ @sagar
+
+# Environment directories
+/envs/nonprod/ @sagar
+/envs/prod/ @sagar
+
+# Policies directory
+/policies/ @sagar
+
+# Landing zones directory
+/landing-zones/ @sagar
+
+# All Terraform files
+*.tf @sagar
+*.tfvars @sagar
+
+# GitHub Actions workflows (if any)
+.github/ @sagar
+
+# Documentation files
+*.md @sagar
+
+# Configuration files
+*.json @sagar
+*.yaml @sagar
+*.yml @sagar
+
+# Terraform state and lock files
+*.tfstate @sagar
+*.tfstate.backup @sagar
+*.tfplan @sagar
+
+# Environment-specific configuration
+.env @sagar
+.env.* @sagar
