@@ -9,8 +9,13 @@ This repository is designed to provide a structured approach to managing Azure c
 - **Modular Architecture**: Reusable modules for common Azure infrastructure components
 - **Multi-Environment Support**: Separate configurations for nonprod and prod environments
 - **Landing Zones**: Foundation infrastructure with management, connectivity, DNS, and policy
+- **Phased Account Onboarding**: `enabled_modules` controls landing-zone-only or full platform rollout
+- **Hybrid Workspace Model**: Non-prod uses one workspace per account; prod uses one workspace per account-region
+- **Terraform Enterprise Execution**: GitLab validates and triggers; TFE owns plan, apply, state, approval, and audit
 - **Security Policies**: OPA policies and Azure Policy for enforcing security and compliance
 - **CI/CD Integration**: GitLab CI/CD pipeline for automated deployment
+
+For the full project anatomy and Mermaid flow diagrams, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 ## Repository Structure
 
@@ -40,6 +45,8 @@ terraform-infra/
   .gitlab-ci.yml
   CODEOWNER
 ```
+
+> The repository root intentionally has no `.tf` files. Run Terraform from `envs/nonprod`, `envs/prod`, `envs/governance`, or `terraform-enterprise-config`.
 
 ## Modules
 
@@ -161,12 +168,36 @@ Deploys Azure Virtual Network with configurable subnets and route tables.
 - **Configuration**: One workspace per Azure account using files like `config/nonprod/account-a.tfvars`
 - **Tags**: Environment set to "nonprod"
 - **Targeting**: `subscription_id` selects the non-prod Azure subscription and `location` selects the primary Azure region.
+- **Apply behavior**: TFE auto-apply after GitLab pre-flight checks pass.
 
 ### Production Environment
 - **State**: Terraform Enterprise workspace state per account-region
 - **Configuration**: One workspace per Azure account-region using files like `config/prod/account-c-eastus.tfvars`
 - **Tags**: Environment set to "prod"
 - **Targeting**: `subscription_id` selects the prod Azure subscription and each regional config selects its own `location`.
+- **Apply behavior**: TFE waits for manual approval before apply.
+
+### Phased Module Enablement
+
+Each account config declares which modules should be active:
+
+```hcl
+enabled_modules = {
+  landing_zone = true
+  vnet         = false
+  acr          = false
+  keyvault     = false
+  aks          = false
+}
+```
+
+This lets a new Azure account start with only landing-zone resources. Existing accounts keep all modules enabled. Terraform variable validation blocks unsafe dependency combinations:
+
+- `aks = true` requires `landing_zone`, `vnet`, `acr`, and `keyvault`.
+- `vnet`, `acr`, and `keyvault` require `landing_zone`.
+- Critical resources use `prevent_destroy`, so disabling an already-created module is blocked from casually destroying infrastructure.
+
+Current non-prod account C is configured as landing-zone-only in `config/nonprod/account-c.tfvars`.
 
 ### How Region and Account Targeting Works
 
@@ -218,6 +249,7 @@ For multiple Azure subscriptions, repeat the same config/workspace pattern:
 ```text
 config/nonprod/account-a.tfvars
 config/nonprod/account-b.tfvars
+config/nonprod/account-c.tfvars
 config/prod/account-c-eastus.tfvars
 config/prod/account-c-eastus2.tfvars
 config/prod/account-d-centralus.tfvars
@@ -229,8 +261,8 @@ config/governance/prod/account-d-dr.tfvars
 Recommended workspace model:
 
 ```text
-non-prod: one workspace per account
-prod:     one workspace per account-region
+non-prod: one workspace per account, auto-apply
+prod:     one workspace per account-region, manual approval
 DR:       one governance workspace per prod account
 ```
 
@@ -269,6 +301,8 @@ The pipeline supports:
 - Manual approval for production deployments inside Terraform Enterprise
 - Security checks and formatting validation
 - Comprehensive policy enforcement
+- Account-aware workspace triggering based on changed config paths
+- Guardrail checks for `enabled_modules` dependency safety
 
 ## Key Improvements Over ccoehub-terraform-infra
 
@@ -285,17 +319,17 @@ The pipeline supports:
 
 ## 🚀 Immediate Priority Implementation
 
-### **1. Multi-Region Disaster Recovery**
-- ✅ **Secondary region setup** (eastus2 by default)
-- ✅ **Secondary hub VNet foundation** for DR expansion
-- ✅ **Separate primary and secondary CIDR ranges**
-- ✅ **Private DNS links prepared for shared services**
+### **1. Hybrid Account and Region Model**
+- ✅ **Non-prod account workspaces** for account-level rollout with lower operational overhead
+- ✅ **Production account-region workspaces** for regional blast-radius isolation
+- ✅ **Governance workspaces** for account-level DR orchestration
+- ✅ **Config-driven targeting** through `subscription_id`, `tenant_id`, and `location`
 
-### **2. Web Application Firewall (WAF)**
-- ✅ **OWASP-compliant protection** for web applications
-- ✅ **Shared public IP foundation for WAF/App Gateway**
-- ✅ **WAF/App Gateway can be layered as a dedicated edge module**
-- ✅ **Production edge controls are separated from AKS cluster creation**
+### **2. Phased Account Onboarding**
+- ✅ **Landing-zone-only onboarding** for new Azure accounts
+- ✅ **Module flags** through `enabled_modules`
+- ✅ **Dependency validation** so AKS cannot be enabled before its platform dependencies
+- ✅ **Lifecycle protection** with `prevent_destroy` on critical resources
 
 ### **3. Enhanced Network Security**
 - ✅ **Network Security Groups (NSGs)** with proper segmentation
@@ -315,11 +349,11 @@ The pipeline supports:
 ### **Phase 1: Core Infrastructure (Week 1-2)**
 - [x] Landing zone module with DR support
 - [x] Enhanced AKS with security features
-- [x] Secondary region hub network foundation
+- [x] Hybrid non-prod/prod workspace model
 - [x] Azure Policy assignments
 
 ### **Phase 2: Security Enhancements (Week 3-4)**
-- [x] WAF public IP foundation
+- [x] Phased `enabled_modules` rollout controls
 - [x] Network Security Groups (NSGs)
 - [x] Enhanced monitoring and alerting
 - [x] Compliance validation scripts
@@ -494,7 +528,7 @@ For questions about the manual approval process:
 2. Initialize Terraform for an environment:
    ```bash
    cd envs/nonprod
-   terraform init
+   terraform init -backend=false
    ```
 
 3. Validate the configuration:
@@ -504,19 +538,21 @@ For questions about the manual approval process:
 
 4. Run a local speculative plan if needed:
    ```bash
-   terraform plan
+   terraform plan -var-file=../../config/nonprod/account-c.tfvars
    ```
 
 5. For real deployments, merge through GitLab and let the pipeline trigger the matching Terraform Enterprise workspace. Terraform Enterprise owns apply, state, approval, and audit history.
 
+> If `terraform plan` fails with `exec: "az": executable file not found`, install Azure CLI and run `az login`, or set the `ARM_*` service principal variables listed below.
+
 ### Environment Variables
 
-Set the following environment variables before running Terraform commands:
+Set the following environment variables before running real local Terraform plans:
 
-- `AZURE_CLIENT_ID`: Azure client ID
-- `AZURE_CLIENT_SECRET`: Azure client secret
-- `AZURE_SUBSCRIPTION_ID`: Azure subscription ID
-- `AZURE_TENANT_ID`: Azure tenant ID
+- `ARM_CLIENT_ID`: Azure client ID
+- `ARM_CLIENT_SECRET`: Azure client secret
+- `ARM_SUBSCRIPTION_ID`: Azure subscription ID
+- `ARM_TENANT_ID`: Azure tenant ID
 
 ## Security Considerations
 
