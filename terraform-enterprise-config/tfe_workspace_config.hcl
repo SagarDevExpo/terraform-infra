@@ -56,6 +56,13 @@ locals {
       trigger_prefixes  = ["envs/nonprod", "config/nonprod/account-b.tfvars", "modules", "policies", "scripts"]
       tf_cli_args_plan  = "-var-file=../../config/nonprod/account-b.tfvars"
     }
+    nonprod_account_c = {
+      name              = "terraform-infra-nonprod-account-c"
+      working_directory = "envs/nonprod"
+      auto_apply        = true
+      trigger_prefixes  = ["envs/nonprod", "config/nonprod/account-c.tfvars", "modules", "policies", "scripts"]
+      tf_cli_args_plan  = "-var-file=../../config/nonprod/account-c.tfvars"
+    }
     prod_account_c_eastus = {
       name              = "terraform-infra-prod-account-c-eastus"
       working_directory = "envs/prod"

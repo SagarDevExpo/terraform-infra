@@ -2,12 +2,20 @@ resource "azurerm_resource_group" "management" {
   name     = "rg-${var.name_prefix}-management"
   location = var.location
   tags     = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_resource_group" "connectivity" {
   name     = "rg-${var.name_prefix}-connectivity"
   location = var.location
   tags     = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_log_analytics_workspace" "platform" {
@@ -17,6 +25,10 @@ resource "azurerm_log_analytics_workspace" "platform" {
   sku                 = "PerGB2018"
   retention_in_days   = var.log_retention_days
   tags                = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_virtual_network" "hub" {
@@ -25,6 +37,10 @@ resource "azurerm_virtual_network" "hub" {
   resource_group_name = azurerm_resource_group.connectivity.name
   address_space       = var.hub_address_space
   tags                = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_subnet" "firewall" {
@@ -70,6 +86,10 @@ resource "azurerm_public_ip" "waf" {
   sku                 = "Standard"
   zones               = var.availability_zones
   tags                = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_policy_definition" "require_tags" {

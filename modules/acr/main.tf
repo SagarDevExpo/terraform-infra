@@ -8,6 +8,10 @@ resource "azurerm_container_registry" "acr" {
   zone_redundancy_enabled       = var.zone_redundancy_enabled
   tags                          = var.tags
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   dynamic "georeplications" {
     for_each = var.georeplication_locations
 

@@ -1,5 +1,13 @@
 name_prefix = "ch-prd-c-eus2"
 
+enabled_modules = {
+  landing_zone = true
+  vnet         = true
+  acr          = true
+  keyvault     = true
+  aks          = true
+}
+
 subscription_id = "cccccccc-cccc-cccc-cccc-cccccccccccc"
 tenant_id       = "00000000-0000-0000-0000-000000000000"
 

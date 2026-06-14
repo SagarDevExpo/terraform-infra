@@ -12,6 +12,10 @@ resource "azurerm_resource_group" "governance" {
   name     = "rg-${var.name_prefix}-governance"
   location = var.primary_location
   tags     = local.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_resource_group" "dr_pairing" {
@@ -23,4 +27,8 @@ resource "azurerm_resource_group" "dr_pairing" {
     PrimaryRegion   = each.key
     SecondaryRegion = each.value
   })
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }

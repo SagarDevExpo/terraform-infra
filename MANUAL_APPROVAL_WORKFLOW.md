@@ -58,6 +58,7 @@ Production uses one workspace per Azure account-region. Each regional workspace 
 |---|---|---|---:|---|
 | `terraform-infra-nonprod-account-a` | `envs/nonprod` | `config/nonprod/account-a.tfvars` | Yes | `envs/nonprod/**`, `config/nonprod/account-a.tfvars`, `modules/**`, `policies/**`, `scripts/**` |
 | `terraform-infra-nonprod-account-b` | `envs/nonprod` | `config/nonprod/account-b.tfvars` | Yes | `envs/nonprod/**`, `config/nonprod/account-b.tfvars`, `modules/**`, `policies/**`, `scripts/**` |
+| `terraform-infra-nonprod-account-c` | `envs/nonprod` | `config/nonprod/account-c.tfvars` | Yes | `envs/nonprod/**`, `config/nonprod/account-c.tfvars`, `modules/**`, `policies/**`, `scripts/**` |
 | `terraform-infra-prod-account-c-eastus` | `envs/prod` | `config/prod/account-c-eastus.tfvars` | No | `envs/prod/**`, `config/prod/account-c-eastus.tfvars`, `modules/**`, `policies/**`, `scripts/**` |
 | `terraform-infra-prod-account-c-eastus2` | `envs/prod` | `config/prod/account-c-eastus2.tfvars` | No | `envs/prod/**`, `config/prod/account-c-eastus2.tfvars`, `modules/**`, `policies/**`, `scripts/**` |
 | `terraform-infra-prod-account-d-centralus` | `envs/prod` | `config/prod/account-d-centralus.tfvars` | No | `envs/prod/**`, `config/prod/account-d-centralus.tfvars`, `modules/**`, `policies/**`, `scripts/**` |
@@ -71,6 +72,7 @@ Production uses one workspace per Azure account-region. Each regional workspace 
 - `TFE_TOKEN`: Terraform Enterprise API token with permission to create runs.
 - `TFE_WORKSPACE_ID_NONPROD_ACCOUNT_A`: Terraform Enterprise workspace ID for non-prod account A.
 - `TFE_WORKSPACE_ID_NONPROD_ACCOUNT_B`: Terraform Enterprise workspace ID for non-prod account B.
+- `TFE_WORKSPACE_ID_NONPROD_ACCOUNT_C`: Terraform Enterprise workspace ID for non-prod account C.
 - `TFE_WORKSPACE_ID_PROD_ACCOUNT_C_EASTUS`: Terraform Enterprise workspace ID for prod account C East US.
 - `TFE_WORKSPACE_ID_PROD_ACCOUNT_C_EASTUS2`: Terraform Enterprise workspace ID for prod account C East US 2.
 - `TFE_WORKSPACE_ID_PROD_ACCOUNT_D_CENTRALUS`: Terraform Enterprise workspace ID for prod account D Central US.
@@ -105,6 +107,7 @@ For multiple Azure accounts/subscriptions, repeat the same pattern:
 non-prod:
   terraform-infra-nonprod-account-a
   terraform-infra-nonprod-account-b
+  terraform-infra-nonprod-account-c
 
 prod:
   terraform-infra-prod-account-c-eastus
@@ -118,3 +121,19 @@ governance:
 ```
 
 Each workspace gets its own config file under `config/`, and GitLab passes the correct workspace ID through protected CI variables.
+
+## Phased Onboarding Guardrails
+
+Each account config uses `enabled_modules` to control rollout:
+
+```hcl
+enabled_modules = {
+  landing_zone = true
+  vnet         = false
+  acr          = false
+  keyvault     = false
+  aks          = false
+}
+```
+
+This lets new accounts start with landing zone only. Existing accounts keep all modules enabled. Terraform validation blocks invalid dependencies, for example `aks=true` without `vnet`, `acr`, and `keyvault`. Critical resources also use `prevent_destroy`, so accidentally turning a module flag off is blocked from deleting infrastructure.

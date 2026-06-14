@@ -19,4 +19,8 @@ resource "azurerm_key_vault" "kv" {
     default_action = var.network_acls_default_action
     bypass         = var.bypass
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }

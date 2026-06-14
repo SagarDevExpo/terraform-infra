@@ -38,6 +38,16 @@ variables:
         - scripts/**/*
         - .gitlab-ci.yml
 
+.nonprod_account_c_changes:
+  rules:
+    - changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-c.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
 .prod_account_c_eastus_changes:
   rules:
     - changes:
@@ -163,6 +173,16 @@ compliance_nonprod_account_b:
   needs:
     - validate_nonprod
 
+compliance_nonprod_account_c:
+  extends:
+    - .terraform_env
+    - .nonprod_account_c_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh nonprod envs/nonprod config/nonprod/account-c.tfvars
+  needs:
+    - validate_nonprod
+
 compliance_prod_account_c_eastus:
   extends:
     - .terraform_env
@@ -232,6 +252,23 @@ trigger_tfe_nonprod_account_b:
       changes:
         - envs/nonprod/**/*
         - config/nonprod/account-b.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_nonprod_account_c:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_NONPROD_ACCOUNT_C" "GitLab ${CI_PIPELINE_ID} triggered nonprod account-c run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_nonprod_account_c
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-c.tfvars
         - modules/**/*
         - policies/**/*
         - scripts/**/*

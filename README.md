@@ -452,6 +452,7 @@ Set the following GitLab CI variables before triggering Terraform Enterprise run
 - `TFE_HOSTNAME`: Terraform Enterprise hostname
 - `TFE_WORKSPACE_ID_NONPROD_ACCOUNT_A`: Non-prod account A workspace ID
 - `TFE_WORKSPACE_ID_NONPROD_ACCOUNT_B`: Non-prod account B workspace ID
+- `TFE_WORKSPACE_ID_NONPROD_ACCOUNT_C`: Non-prod account C workspace ID
 - `TFE_WORKSPACE_ID_PROD_ACCOUNT_C_EASTUS`: Prod account C East US workspace ID
 - `TFE_WORKSPACE_ID_PROD_ACCOUNT_C_EASTUS2`: Prod account C East US 2 workspace ID
 - `TFE_WORKSPACE_ID_PROD_ACCOUNT_D_CENTRALUS`: Prod account D Central US workspace ID

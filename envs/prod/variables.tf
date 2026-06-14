@@ -19,6 +19,42 @@ variable "location" {
   default     = "eastus"
 }
 
+variable "enabled_modules" {
+  description = "Controls phased account onboarding. Disabling an already-created module can plan destruction and should be done only through an approved decommission flow."
+  type = object({
+    landing_zone = bool
+    vnet         = bool
+    acr          = bool
+    keyvault     = bool
+    aks          = bool
+  })
+
+  validation {
+    condition = (
+      !var.enabled_modules.aks ||
+      (
+        var.enabled_modules.landing_zone &&
+        var.enabled_modules.vnet &&
+        var.enabled_modules.acr &&
+        var.enabled_modules.keyvault
+      )
+    )
+    error_message = "AKS requires landing_zone, vnet, acr, and keyvault to be enabled."
+  }
+
+  validation {
+    condition = (
+      !(
+        var.enabled_modules.vnet ||
+        var.enabled_modules.acr ||
+        var.enabled_modules.keyvault
+      ) ||
+      var.enabled_modules.landing_zone
+    )
+    error_message = "Platform modules require landing_zone to be enabled."
+  }
+}
+
 variable "hub_address_space" {
   description = "Landing-zone hub VNet address space."
   type        = list(string)

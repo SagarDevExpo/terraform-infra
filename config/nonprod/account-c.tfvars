@@ -1,50 +1,50 @@
-name_prefix = "ch-np-b"
+name_prefix = "ch-np-c"
 
 enabled_modules = {
   landing_zone = true
-  vnet         = true
-  acr          = true
-  keyvault     = true
-  aks          = true
+  vnet         = false
+  acr          = false
+  keyvault     = false
+  aks          = false
 }
 
-subscription_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+subscription_id = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
 tenant_id       = "00000000-0000-0000-0000-000000000000"
 
-location = "centralus"
+location = "eastus2"
 
-hub_address_space = ["10.130.0.0/16"]
+hub_address_space = ["10.230.0.0/16"]
 
-firewall_subnet_prefix        = "10.130.0.0/26"
-shared_services_subnet_prefix = "10.130.1.0/24"
+firewall_subnet_prefix        = "10.230.0.0/26"
+shared_services_subnet_prefix = "10.230.1.0/24"
 
 private_dns_zones = [
   "privatelink.azurecr.io",
   "privatelink.vaultcore.azure.net",
-  "privatelink.centralus.azmk8s.io"
+  "privatelink.eastus2.azmk8s.io"
 ]
 
-spoke_address_space = ["10.140.0.0/16"]
+spoke_address_space = ["10.240.0.0/16"]
 
 subnets = {
   aks = {
-    address_prefixes = ["10.140.10.0/23"]
+    address_prefixes = ["10.240.10.0/23"]
     service_endpoints = [
       "Microsoft.ContainerRegistry",
       "Microsoft.KeyVault"
     ]
   }
   private_endpoints = {
-    address_prefixes = ["10.140.20.0/24"]
+    address_prefixes = ["10.240.20.0/24"]
   }
 }
 
-acr_name       = "chnpbacr001"
-key_vault_name = "ch-np-b-kv-001"
+acr_name       = "chnpcacr001"
+key_vault_name = "ch-np-c-kv-001"
 
 kubernetes_version = "1.30.4"
-service_cidr       = "10.141.0.0/16"
-dns_service_ip     = "10.141.0.10"
+service_cidr       = "10.241.0.0/16"
+dns_service_ip     = "10.241.0.10"
 
 aks_admin_group_object_ids = [
   "11111111-1111-1111-1111-111111111111"
@@ -71,5 +71,5 @@ user_node_pools = {
 tags = {
   CostCenter = "ccoehub"
   DataClass  = "internal"
-  Account    = "account-b"
+  Account    = "account-c"
 }

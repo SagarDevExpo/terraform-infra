@@ -1,5 +1,13 @@
 name_prefix = "ch-np-a"
 
+enabled_modules = {
+  landing_zone = true
+  vnet         = true
+  acr          = true
+  keyvault     = true
+  aks          = true
+}
+
 subscription_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 tenant_id       = "00000000-0000-0000-0000-000000000000"
 

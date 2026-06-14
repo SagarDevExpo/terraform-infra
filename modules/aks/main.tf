@@ -5,6 +5,10 @@ resource "azurerm_log_analytics_workspace" "this" {
   sku                 = "PerGB2018"
   retention_in_days   = var.log_retention_days
   tags                = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_kubernetes_cluster" "this" {
@@ -58,6 +62,10 @@ resource "azurerm_kubernetes_cluster" "this" {
     dns_service_ip    = var.dns_service_ip
     load_balancer_sku = "standard"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_kubernetes_cluster_node_pool" "user" {
@@ -78,6 +86,10 @@ resource "azurerm_kubernetes_cluster_node_pool" "user" {
   eviction_policy       = each.value.priority == "Spot" ? "Delete" : null
   zones                 = var.availability_zones
   tags                  = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_role_assignment" "acr_pull" {

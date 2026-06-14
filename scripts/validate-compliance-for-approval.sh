@@ -61,7 +61,7 @@ else
   check_failed "Primary Azure region is not set in ${var_file}."
 fi
 
-if grep -R "hashicorp/aws\\|backend \"s3\"\\|aws_" "$env_dir" modules >/dev/null 2>&1; then
+if find "$env_dir" modules -name "*.tf" -print | xargs grep -E "hashicorp/aws|backend \"s3\"|resource \"aws_|data \"aws_" >/dev/null 2>&1; then
   check_failed "AWS provider/backend leftovers found in Azure Terraform path."
 else
   check_passed "No AWS provider/backend leftovers found."
@@ -95,6 +95,27 @@ if contains "name_prefix" "$var_file"; then
   check_passed "Config provides a unique resource name prefix."
 else
   check_failed "Config file does not provide name_prefix."
+fi
+
+if contains "enabled_modules" "$var_file"; then
+  check_passed "Config declares enabled_modules for phased onboarding."
+else
+  check_failed "Config file does not declare enabled_modules."
+fi
+
+if awk '
+  /enabled_modules[[:space:]]*=/ { in_block=1 }
+  in_block && /aks[[:space:]]*=[[:space:]]*true/ { aks=1 }
+  in_block && /vnet[[:space:]]*=[[:space:]]*true/ { vnet=1 }
+  in_block && /acr[[:space:]]*=[[:space:]]*true/ { acr=1 }
+  in_block && /keyvault[[:space:]]*=[[:space:]]*true/ { keyvault=1 }
+  in_block && /landing_zone[[:space:]]*=[[:space:]]*true/ { landing=1 }
+  in_block && /^}/ { in_block=0 }
+  END { exit !(aks && !(landing && vnet && acr && keyvault)) }
+' "$var_file"; then
+  check_failed "enabled_modules.aks=true requires landing_zone, vnet, acr, and keyvault to also be true."
+else
+  check_passed "enabled_modules dependency check passed."
 fi
 
 if contains "CostCenter" "$var_file" && contains "DataClass" "$var_file"; then
