@@ -21,27 +21,27 @@ For the full project anatomy and Mermaid flow diagrams, see [ARCHITECTURE.md](./
 
 ```mermaid
 flowchart TD
-  Dev[Developer Merge Request] --> GitLab[GitLab CI<br/>fmt validate compliance]
-  GitLab --> Router[Workspace Router<br/>rules changes]
-  Router --> TFE[TFE Workspace<br/>plan state approval apply]
-  TFE --> Azure[Target Azure Subscription<br/>tenant subscription location from tfvars]
+  Dev[Developer merge request] --> GitLab[GitLab CI validation]
+  GitLab --> Router[Workspace routing]
+  Router --> TFE[Terraform Enterprise]
+  TFE --> Azure[Target Azure subscription and region]
 
-  Azure --> LZ[Landing Zone<br/>management RG connectivity RG<br/>hub VNet private DNS policy logs]
-  LZ --> Spoke[Spoke Platform<br/>spoke VNet subnets route table]
-  Spoke --> Core[Core Platform<br/>ACR Key Vault private AKS]
-  Spoke --> Edge[Network Edge<br/>Firewall Bastion NAT App Gateway WAF]
-  Core --> Workload[Workload Services<br/>Workload Identity GitOps ACA Redis Postgres]
-  Core --> Governance[Operations<br/>Defender Budget Diagnostics Private Endpoints]
+  Azure --> LZ[Landing zone foundation]
+  LZ --> Spoke[Spoke platform network]
+  Spoke --> Core[Core platform services]
+  Spoke --> Edge[Network edge services]
+  Core --> Workload[Workload services]
+  Core --> Governance[Governance and operations]
 ```
 
 ```mermaid
 flowchart LR
-  Config[config/*.tfvars<br/>account region module flags] --> Root[envs/nonprod or envs/prod<br/>root composition]
-  Root --> Modules[modules/*<br/>reusable building blocks]
+  Config[Account and region config] --> Root[Environment root module]
+  Root --> Modules[Reusable modules]
   Modules --> Plan[TFE Plan]
   Plan --> Guardrails{Guardrails}
-  Guardrails -->|nonprod| AutoApply[TFE Auto Apply]
-  Guardrails -->|prod| Approval[Manual Approval]
+  Guardrails -->|Nonprod| AutoApply[TFE auto apply]
+  Guardrails -->|Prod| Approval[Manual approval]
   Approval --> Apply[TFE Apply]
   AutoApply --> Azure[Azure Resources]
   Apply --> Azure
