@@ -52,6 +52,9 @@ flowchart LR
   Modules --> ACR[acr]
   Modules --> KV[keyvault]
   Modules --> AKS[aks]
+  Modules --> NetSec[firewall, bastion, peering, nat, app-gateway-waf]
+  Modules --> Platform[private-endpoints, defender, budget, diagnostics]
+  Modules --> Workloads[workload-identity, gitops-addons, container-apps, redis, postgres]
 
   Nonprod --> Modules
   Prod --> Modules
@@ -86,11 +89,15 @@ Each account config has an `enabled_modules` block:
 
 ```hcl
 enabled_modules = {
-  landing_zone = true
-  vnet         = false
-  acr          = false
-  keyvault     = false
-  aks          = false
+  landing_zone      = true
+  vnet              = false
+  acr               = false
+  keyvault          = false
+  aks               = false
+  firewall          = false
+  bastion           = false
+  private_endpoints = false
+  gitops_addons     = false
 }
 ```
 

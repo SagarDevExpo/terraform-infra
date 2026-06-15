@@ -59,6 +59,15 @@ resource "azurerm_subnet" "shared_services" {
   service_endpoints    = ["Microsoft.Storage", "Microsoft.KeyVault"]
 }
 
+resource "azurerm_subnet" "bastion" {
+  count = var.bastion_subnet_prefix == null ? 0 : 1
+
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = azurerm_resource_group.connectivity.name
+  virtual_network_name = azurerm_virtual_network.hub.name
+  address_prefixes     = [var.bastion_subnet_prefix]
+}
+
 resource "azurerm_private_dns_zone" "zones" {
   for_each = toset(var.private_dns_zones)
 

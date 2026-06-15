@@ -23,6 +23,26 @@ output "hub_vnet_id" {
   value       = azurerm_virtual_network.hub.id
 }
 
+output "hub_vnet_name" {
+  description = "Primary hub VNet name."
+  value       = azurerm_virtual_network.hub.name
+}
+
+output "firewall_subnet_id" {
+  description = "AzureFirewallSubnet ID."
+  value       = azurerm_subnet.firewall.id
+}
+
+output "shared_services_subnet_id" {
+  description = "Shared services subnet ID."
+  value       = azurerm_subnet.shared_services.id
+}
+
+output "bastion_subnet_id" {
+  description = "Azure Bastion subnet ID."
+  value       = try(azurerm_subnet.bastion[0].id, null)
+}
+
 output "private_dns_zone_ids" {
   description = "Private DNS zone IDs keyed by zone name."
   value       = { for name, zone in azurerm_private_dns_zone.zones : name => zone.id }

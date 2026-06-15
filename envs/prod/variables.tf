@@ -22,11 +22,25 @@ variable "location" {
 variable "enabled_modules" {
   description = "Controls phased account onboarding. Disabling an already-created module can plan destruction and should be done only through an approved decommission flow."
   type = object({
-    landing_zone = bool
-    vnet         = bool
-    acr          = bool
-    keyvault     = bool
-    aks          = bool
+    landing_zone      = bool
+    vnet              = bool
+    acr               = bool
+    keyvault          = bool
+    aks               = bool
+    firewall          = optional(bool, false)
+    bastion           = optional(bool, false)
+    vnet_peering      = optional(bool, false)
+    nat_gateway       = optional(bool, false)
+    app_gateway_waf   = optional(bool, false)
+    private_endpoints = optional(bool, false)
+    defender          = optional(bool, false)
+    budget            = optional(bool, false)
+    diagnostics       = optional(bool, false)
+    workload_identity = optional(bool, false)
+    gitops_addons     = optional(bool, false)
+    container_apps    = optional(bool, false)
+    redis             = optional(bool, false)
+    postgres          = optional(bool, false)
   })
 
   validation {
@@ -53,6 +67,57 @@ variable "enabled_modules" {
     )
     error_message = "Platform modules require landing_zone to be enabled."
   }
+
+  validation {
+    condition = (
+      !(
+        var.enabled_modules.firewall ||
+        var.enabled_modules.bastion ||
+        var.enabled_modules.defender ||
+        var.enabled_modules.budget ||
+        var.enabled_modules.diagnostics
+      ) ||
+      var.enabled_modules.landing_zone
+    )
+    error_message = "Foundation add-ons require landing_zone to be enabled."
+  }
+
+  validation {
+    condition = (
+      !(
+        var.enabled_modules.vnet_peering ||
+        var.enabled_modules.nat_gateway ||
+        var.enabled_modules.app_gateway_waf ||
+        var.enabled_modules.private_endpoints ||
+        var.enabled_modules.container_apps ||
+        var.enabled_modules.redis ||
+        var.enabled_modules.postgres
+      ) ||
+      (
+        var.enabled_modules.landing_zone &&
+        var.enabled_modules.vnet
+      )
+    )
+    error_message = "Platform add-ons require landing_zone and vnet to be enabled."
+  }
+
+  validation {
+    condition = (
+      !(
+        var.enabled_modules.workload_identity ||
+        var.enabled_modules.gitops_addons
+      ) ||
+      var.enabled_modules.aks
+    )
+    error_message = "AKS add-ons require aks to be enabled."
+  }
+
+}
+
+variable "bastion_subnet_prefix" {
+  description = "Optional AzureBastionSubnet CIDR."
+  type        = string
+  default     = null
 }
 
 variable "hub_address_space" {
@@ -145,4 +210,119 @@ variable "tags" {
   description = "Common tags."
   type        = map(string)
   default     = {}
+}
+
+variable "private_endpoints" {
+  description = "Private endpoints keyed by logical name."
+  type = map(object({
+    resource_id          = string
+    subresource_names    = list(string)
+    private_dns_zone_ids = optional(list(string), [])
+  }))
+  default = {}
+}
+
+variable "budget" {
+  description = "Subscription budget configuration."
+  type = object({
+    amount     = number
+    start_date = string
+    end_date   = optional(string)
+    notifications = optional(map(object({
+      threshold      = number
+      contact_emails = list(string)
+    })), {})
+  })
+  default = null
+}
+
+variable "diagnostic_targets" {
+  description = "Extra diagnostic targets keyed by logical name."
+  type = map(object({
+    resource_id    = string
+    log_categories = optional(list(string), [])
+    enable_metrics = optional(bool, true)
+  }))
+  default = {}
+}
+
+variable "workload_identities" {
+  description = "AKS workload identities keyed by app name."
+  type = map(object({
+    namespace            = string
+    service_account_name = string
+    role_assignments = optional(list(object({
+      scope                = string
+      role_definition_name = string
+    })), [])
+  }))
+  default = {}
+}
+
+variable "gitops_addons" {
+  description = "Flux GitOps add-on configuration."
+  type = object({
+    git_repository_url       = string
+    git_reference_type       = optional(string, "branch")
+    git_reference_value      = optional(string, "main")
+    kustomization_path       = optional(string, "./clusters/platform-addons")
+    sync_interval_in_seconds = optional(number, 300)
+  })
+  default = null
+}
+
+variable "container_apps" {
+  description = "Container apps keyed by app name."
+  type = map(object({
+    image            = string
+    cpu              = number
+    memory           = string
+    min_replicas     = number
+    max_replicas     = number
+    target_port      = number
+    external_enabled = optional(bool, false)
+  }))
+  default = {}
+}
+
+variable "redis" {
+  description = "Redis configuration."
+  type = object({
+    capacity                      = optional(number, 1)
+    family                        = optional(string, "C")
+    sku_name                      = optional(string, "Standard")
+    redis_version                 = optional(string, "6")
+    public_network_access_enabled = optional(bool, false)
+  })
+  default = {}
+}
+
+variable "postgres" {
+  description = "PostgreSQL flexible server configuration."
+  type = object({
+    administrator_login           = optional(string, "psqladmin")
+    administrator_password        = optional(string)
+    postgres_version              = optional(string, "16")
+    sku_name                      = optional(string, "GP_Standard_D2s_v3")
+    storage_mb                    = optional(number, 32768)
+    backup_retention_days         = optional(number, 7)
+    geo_redundant_backup_enabled  = optional(bool, false)
+    public_network_access_enabled = optional(bool, false)
+    zone                          = optional(string, "1")
+    databases                     = optional(list(string), ["app"])
+  })
+  default   = {}
+  sensitive = true
+}
+
+variable "app_gateway_waf" {
+  description = "Application Gateway WAF configuration."
+  type = object({
+    capacity                 = optional(number, 2)
+    waf_mode                 = optional(string, "Prevention")
+    ssl_certificate_data     = optional(string)
+    ssl_certificate_password = optional(string)
+  })
+  default   = {}
+  sensitive = true
 }

@@ -118,6 +118,43 @@ else
   check_passed "enabled_modules dependency check passed."
 fi
 
+if awk '
+  /enabled_modules[[:space:]]*=/ { in_block=1 }
+  in_block && /(firewall|bastion|defender|budget|diagnostics)[[:space:]]*=[[:space:]]*true/ { foundation=1 }
+  in_block && /landing_zone[[:space:]]*=[[:space:]]*true/ { landing=1 }
+  in_block && /^}/ { in_block=0 }
+  END { exit !(foundation && !landing) }
+' "$var_file"; then
+  check_failed "Foundation add-ons require landing_zone=true."
+else
+  check_passed "Foundation add-on dependency check passed."
+fi
+
+if awk '
+  /enabled_modules[[:space:]]*=/ { in_block=1 }
+  in_block && /(vnet_peering|nat_gateway|app_gateway_waf|private_endpoints|container_apps|redis|postgres)[[:space:]]*=[[:space:]]*true/ { platform=1 }
+  in_block && /landing_zone[[:space:]]*=[[:space:]]*true/ { landing=1 }
+  in_block && /vnet[[:space:]]*=[[:space:]]*true/ { vnet=1 }
+  in_block && /^}/ { in_block=0 }
+  END { exit !(platform && !(landing && vnet)) }
+' "$var_file"; then
+  check_failed "Platform add-ons require landing_zone=true and vnet=true."
+else
+  check_passed "Platform add-on dependency check passed."
+fi
+
+if awk '
+  /enabled_modules[[:space:]]*=/ { in_block=1 }
+  in_block && /(workload_identity|gitops_addons)[[:space:]]*=[[:space:]]*true/ { aks_addon=1 }
+  in_block && /aks[[:space:]]*=[[:space:]]*true/ { aks=1 }
+  in_block && /^}/ { in_block=0 }
+  END { exit !(aks_addon && !aks) }
+' "$var_file"; then
+  check_failed "AKS add-ons require aks=true."
+else
+  check_passed "AKS add-on dependency check passed."
+fi
+
 if contains "CostCenter" "$var_file" && contains "DataClass" "$var_file"; then
   check_passed "Required governance tags are present in config."
 else

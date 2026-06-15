@@ -27,6 +27,20 @@ terraform-infra/
     acr/           # Azure Container Registry
     keyvault/      # Key Vault baseline
     aks/           # private AKS cluster, node pools, identity, logging
+    firewall/      # Azure Firewall, policy, default route support
+    bastion/       # Azure Bastion
+    vnet-peering/  # hub-spoke peering
+    nat-gateway/   # NAT Gateway and subnet associations
+    app-gateway-waf/       # Application Gateway WAF v2
+    private-endpoints/     # private endpoint factory
+    defender/              # Defender for Cloud plans
+    budget/                # subscription budget alerts
+    diagnostic-settings/   # Log Analytics diagnostic routing
+    workload-identity/     # AKS workload identities
+    gitops-addons/         # Flux add-on bootstrap
+    container-apps/        # Azure Container Apps environment/apps
+    redis/                 # Azure Cache for Redis
+    postgres/              # PostgreSQL flexible server
 
   envs/
     nonprod/       # nonprod provider and module composition
@@ -102,6 +116,24 @@ Deploys Azure Kubernetes Service (AKS) clusters with configurable node pools, ne
 - `cluster_token`: AKS cluster token (sensitive)
 - `log_analytics_workspace_id`: Log Analytics workspace ID
 - `kubelet_identity_object_id`: AKS kubelet identity object ID
+
+### Enterprise Add-On Modules
+The repo now includes optional modules for the platform capabilities usually layered around the core landing zone:
+
+- `firewall`: Azure Firewall, Firewall Policy, public IP, and optional default route into the spoke route table.
+- `bastion`: Azure Bastion in `AzureBastionSubnet`.
+- `vnet-peering`: bi-directional hub/spoke peering.
+- `nat-gateway`: NAT Gateway with public IP and subnet associations.
+- `app-gateway-waf`: Application Gateway WAF v2 with WAF policy.
+- `private-endpoints`: reusable private endpoint factory for ACR, Key Vault, Redis, PostgreSQL, or custom resources.
+- `defender`: Defender for Cloud subscription plans.
+- `budget`: subscription-level monthly budget and alert thresholds.
+- `diagnostic-settings`: Log Analytics diagnostic settings for platform resources.
+- `workload-identity`: user-assigned managed identities and federated credentials for AKS service accounts.
+- `gitops-addons`: Flux extension/configuration for AKS add-ons.
+- `container-apps`: Container Apps environment and app definitions.
+- `redis`: Azure Cache for Redis.
+- `postgres`: PostgreSQL flexible server and databases.
 
 ### Key Vault Module
 Deploys Azure Key Vault with configurable security settings and access controls.
@@ -183,15 +215,29 @@ Each account config declares which modules should be active:
 
 ```hcl
 enabled_modules = {
-  landing_zone = true
-  vnet         = false
-  acr          = false
-  keyvault     = false
-  aks          = false
+  landing_zone      = true
+  vnet              = false
+  acr               = false
+  keyvault          = false
+  aks               = false
+  firewall          = false
+  bastion           = false
+  vnet_peering      = false
+  nat_gateway       = false
+  app_gateway_waf   = false
+  private_endpoints = false
+  defender          = false
+  budget            = false
+  diagnostics       = false
+  workload_identity = false
+  gitops_addons     = false
+  container_apps    = false
+  redis             = false
+  postgres          = false
 }
 ```
 
-This lets a new Azure account start with only landing-zone resources. Existing accounts keep all modules enabled. Terraform variable validation blocks unsafe dependency combinations:
+Only the first five flags are required in existing tfvars; the expanded flags are optional and default to `false`. This lets a new Azure account start with only landing-zone resources and later opt into firewall, private endpoints, GitOps, Container Apps, Redis, or database modules deliberately. Terraform variable validation blocks unsafe dependency combinations:
 
 - `aks = true` requires `landing_zone`, `vnet`, `acr`, and `keyvault`.
 - `vnet`, `acr`, and `keyvault` require `landing_zone`.

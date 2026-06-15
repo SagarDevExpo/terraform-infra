@@ -28,6 +28,12 @@ variable "shared_services_subnet_prefix" {
   type        = string
 }
 
+variable "bastion_subnet_prefix" {
+  description = "Optional CIDR for AzureBastionSubnet. Must be /26 or larger when enabled."
+  type        = string
+  default     = null
+}
+
 variable "private_dns_zones" {
   description = "Private DNS zones for platform services."
   type        = list(string)

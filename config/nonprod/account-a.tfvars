@@ -1,11 +1,25 @@
 name_prefix = "ch-np-a"
 
 enabled_modules = {
-  landing_zone = true
-  vnet         = true
-  acr          = true
-  keyvault     = true
-  aks          = true
+  landing_zone      = true
+  vnet              = true
+  acr               = true
+  keyvault          = true
+  aks               = true
+  firewall          = false
+  bastion           = false
+  vnet_peering      = false
+  nat_gateway       = false
+  app_gateway_waf   = false
+  private_endpoints = false
+  defender          = false
+  budget            = false
+  diagnostics       = false
+  workload_identity = false
+  gitops_addons     = false
+  container_apps    = false
+  redis             = false
+  postgres          = false
 }
 
 subscription_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -17,10 +31,13 @@ hub_address_space = ["10.30.0.0/16"]
 
 firewall_subnet_prefix        = "10.30.0.0/26"
 shared_services_subnet_prefix = "10.30.1.0/24"
+bastion_subnet_prefix         = "10.30.2.0/26"
 
 private_dns_zones = [
   "privatelink.azurecr.io",
   "privatelink.vaultcore.azure.net",
+  "privatelink.redis.cache.windows.net",
+  "privatelink.postgres.database.azure.com",
   "privatelink.eastus.azmk8s.io"
 ]
 
@@ -36,6 +53,12 @@ subnets = {
   }
   private_endpoints = {
     address_prefixes = ["10.40.20.0/24"]
+  }
+  app_gateway = {
+    address_prefixes = ["10.40.30.0/24"]
+  }
+  container_apps = {
+    address_prefixes = ["10.40.40.0/23"]
   }
 }
 
