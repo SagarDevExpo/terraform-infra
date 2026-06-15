@@ -17,6 +17,36 @@ This repository is designed to provide a structured approach to managing Azure c
 
 For the full project anatomy and Mermaid flow diagrams, see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
+## Architecture At A Glance
+
+```mermaid
+flowchart TD
+  Dev[Developer Merge Request] --> GitLab[GitLab CI<br/>fmt validate compliance]
+  GitLab --> Router[Workspace Router<br/>rules changes]
+  Router --> TFE[TFE Workspace<br/>plan state approval apply]
+  TFE --> Azure[Target Azure Subscription<br/>tenant subscription location from tfvars]
+
+  Azure --> LZ[Landing Zone<br/>management RG connectivity RG<br/>hub VNet private DNS policy logs]
+  LZ --> Spoke[Spoke Platform<br/>spoke VNet subnets route table]
+  Spoke --> Core[Core Platform<br/>ACR Key Vault private AKS]
+  Spoke --> Edge[Network Edge<br/>Firewall Bastion NAT App Gateway WAF]
+  Core --> Workload[Workload Services<br/>Workload Identity GitOps ACA Redis Postgres]
+  Core --> Governance[Operations<br/>Defender Budget Diagnostics Private Endpoints]
+```
+
+```mermaid
+flowchart LR
+  Config[config/*.tfvars<br/>account region module flags] --> Root[envs/nonprod or envs/prod<br/>root composition]
+  Root --> Modules[modules/*<br/>reusable building blocks]
+  Modules --> Plan[TFE Plan]
+  Plan --> Guardrails{Guardrails}
+  Guardrails -->|nonprod| AutoApply[TFE Auto Apply]
+  Guardrails -->|prod| Approval[Manual Approval]
+  Approval --> Apply[TFE Apply]
+  AutoApply --> Azure[Azure Resources]
+  Apply --> Azure
+```
+
 ## Repository Structure
 
 ```
@@ -241,6 +271,9 @@ Only the first five flags are required in existing tfvars; the expanded flags ar
 
 - `aks = true` requires `landing_zone`, `vnet`, `acr`, and `keyvault`.
 - `vnet`, `acr`, and `keyvault` require `landing_zone`.
+- Foundation add-ons require `landing_zone`.
+- Platform add-ons require `landing_zone` and `vnet`.
+- AKS add-ons require `aks`.
 - Critical resources use `prevent_destroy`, so disabling an already-created module is blocked from casually destroying infrastructure.
 
 Current non-prod account C is configured as landing-zone-only in `config/nonprod/account-c.tfvars`.

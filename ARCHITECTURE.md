@@ -31,34 +31,106 @@ flowchart TD
 ## Repository Anatomy
 
 ```mermaid
-flowchart LR
-  Root[terraform-infra gitlab repo root<br/>docs, CI, scripts, policies] --> Envs[envs]
+flowchart TB
+  Root[terraform-infra repo] --> CI[.gitlab-ci.yml]
+  Root --> Scripts[scripts<br/>TFE trigger and compliance]
+  Root --> Policies[policies<br/>OPA guardrails]
+  Root --> TFEConfig[terraform-enterprise-config]
+  Root --> Envs[envs]
   Root --> Config[config]
   Root --> Modules[modules]
-  Root --> Policies[policies]
-  Root --> Scripts[scripts]
-  Root --> TFEConfig[terraform-enterprise-config]
 
-  Envs --> Nonprod[envs/nonprod<br/>non-prod root module]
-  Envs --> Prod[envs/prod<br/>prod regional root module]
-  Envs --> Governance[envs/governance<br/>account-level governance/DR]
+  Envs --> Nonprod[envs/nonprod<br/>account root module]
+  Envs --> Prod[envs/prod<br/>account-region root module]
+  Envs --> Governance[envs/governance<br/>DR governance root]
 
-  Config --> NPConfig[config/nonprod/*.tfvars<br/>one file per non-prod account]
-  Config --> ProdConfig[config/prod/*.tfvars<br/>one file per prod account-region]
-  Config --> GovConfig[config/governance/prod/*.tfvars<br/>DR pairings]
+  Config --> NPConfig[config/nonprod<br/>account-a account-b account-c]
+  Config --> ProdConfig[config/prod<br/>account-region tfvars]
+  Config --> GovConfig[config/governance/prod<br/>DR pairings]
 
-  Modules --> LZ[landing-zone]
-  Modules --> VNet[vnet]
-  Modules --> ACR[acr]
-  Modules --> KV[keyvault]
-  Modules --> AKS[aks]
-  Modules --> NetSec[firewall, bastion, peering, nat, app-gateway-waf]
-  Modules --> Platform[private-endpoints, defender, budget, diagnostics]
-  Modules --> Workloads[workload-identity, gitops-addons, container-apps, redis, postgres]
+  Modules --> Foundation[Foundation<br/>landing-zone]
+  Modules --> Network[Network<br/>vnet firewall peering nat bastion app-gateway-waf]
+  Modules --> Core[Core Platform<br/>acr keyvault aks private-endpoints]
+  Modules --> Ops[Operations<br/>defender budget diagnostics]
+  Modules --> Workloads[Workload Layer<br/>workload-identity gitops-addons container-apps redis postgres]
 
-  Nonprod --> Modules
-  Prod --> Modules
+  Nonprod --> Foundation
+  Nonprod --> Network
+  Nonprod --> Core
+  Nonprod --> Ops
+  Nonprod --> Workloads
+
+  Prod --> Foundation
+  Prod --> Network
+  Prod --> Core
+  Prod --> Ops
+  Prod --> Workloads
+
   Governance --> GovConfig
+```
+
+## Azure Resource Layering
+
+```mermaid
+flowchart TD
+  subgraph LZ[Landing Zone Module]
+    MgmtRG[Management RG]
+    ConnRG[Connectivity RG]
+    LAW[Log Analytics]
+    Hub[Hub VNet]
+    FwSubnet[AzureFirewallSubnet]
+    SharedSubnet[Shared Services Subnet]
+    BastionSubnet[AzureBastionSubnet optional]
+    DNS[Private DNS Zones]
+    Policy[Azure Policy Assignments]
+  end
+
+  subgraph Network[Network Add-Ons]
+    Spoke[Spoke VNet]
+    Subnets[AKS Private Endpoint<br/>App Gateway Container Apps Subnets]
+    Peer[Hub-Spoke Peering]
+    Firewall[Azure Firewall]
+    NAT[NAT Gateway]
+    Bastion[Azure Bastion]
+    AGW[Application Gateway WAF]
+  end
+
+  subgraph Core[Core Platform]
+    ACR[Azure Container Registry]
+    KV[Key Vault]
+    AKS[Private AKS]
+    PE[Private Endpoints]
+  end
+
+  subgraph Workload[Workload And Ops Layer]
+    WI[AKS Workload Identity]
+    Flux[Flux GitOps Add-Ons]
+    ACA[Azure Container Apps]
+    Redis[Azure Cache for Redis]
+    Postgres[PostgreSQL Flexible Server]
+    Defender[Defender for Cloud]
+    Budget[Budget Alerts]
+    Diag[Diagnostic Settings]
+  end
+
+  Hub --> Peer
+  Spoke --> Peer
+  Spoke --> Subnets
+  FwSubnet --> Firewall
+  BastionSubnet --> Bastion
+  SharedSubnet --> DNS
+  Subnets --> AKS
+  Subnets --> PE
+  Subnets --> AGW
+  Subnets --> ACA
+  ACR --> PE
+  KV --> PE
+  Redis --> PE
+  Postgres --> PE
+  AKS --> WI
+  AKS --> Flux
+  LAW --> Diag
+  Policy --> Core
 ```
 
 ## Workspace Model
@@ -96,8 +168,18 @@ enabled_modules = {
   aks               = false
   firewall          = false
   bastion           = false
+  vnet_peering      = false
+  nat_gateway       = false
+  app_gateway_waf   = false
   private_endpoints = false
+  defender          = false
+  budget            = false
+  diagnostics       = false
+  workload_identity = false
   gitops_addons     = false
+  container_apps    = false
+  redis             = false
+  postgres          = false
 }
 ```
 
@@ -110,16 +192,35 @@ flowchart TD
   Validate --> TFE[TFE applies landing zone]
   TFE --> PlatformReady{Ready for platform modules?}
   PlatformReady -- No --> Stop[Keep account foundation-only]
-  PlatformReady -- Yes --> EnablePlatform[Enable vnet, acr, keyvault]
-  EnablePlatform --> EnableAKS[Enable aks after dependencies exist]
+  PlatformReady -- Yes --> EnableNetwork[Enable vnet]
+  EnableNetwork --> EnableCore[Enable acr and keyvault]
+  EnableCore --> EnableAKS[Enable aks]
+  EnableNetwork --> EnableNetAddons[Optional network add-ons<br/>firewall peering nat bastion waf]
+  EnableAKS --> EnableAKSAddons[Optional AKS add-ons<br/>workload identity and gitops]
+  EnableCore --> EnableServices[Optional services<br/>private endpoints redis postgres container apps]
 ```
 
 Guardrails:
 
 - `aks = true` requires `landing_zone`, `vnet`, `acr`, and `keyvault`.
 - `vnet`, `acr`, and `keyvault` require `landing_zone`.
+- `firewall`, `bastion`, `defender`, `budget`, and `diagnostics` require `landing_zone`.
+- `vnet_peering`, `nat_gateway`, `app_gateway_waf`, `private_endpoints`, `container_apps`, `redis`, and `postgres` require `landing_zone` and `vnet`.
+- `workload_identity` and `gitops_addons` require `aks`.
 - Critical resources use `prevent_destroy` so disabling an already-created module does not casually destroy infrastructure.
 - GitLab compliance checks verify the `enabled_modules` block before triggering TFE.
+
+```mermaid
+flowchart LR
+  LZ[landing_zone] --> VNet[vnet]
+  LZ --> FoundationAddons[firewall bastion defender budget diagnostics]
+  VNet --> PlatformAddons[vnet_peering nat_gateway app_gateway_waf private_endpoints container_apps redis postgres]
+  VNet --> ACR[acr]
+  VNet --> KV[keyvault]
+  ACR --> AKS[aks]
+  KV --> AKS
+  AKS --> AKSAddons[workload_identity gitops_addons]
+```
 
 ## Account and Region Targeting
 
@@ -134,6 +235,35 @@ flowchart LR
 ```
 
 For non-prod, one account workspace can target the account's selected primary region. For production, regional blast-radius isolation is stronger, so each prod account-region gets its own workspace and state.
+
+## GitLab To TFE Routing
+
+```mermaid
+flowchart TD
+  Merge[Merge to main] --> Changed{Changed paths}
+
+  Changed -->|config/nonprod/account-a.tfvars<br/>or nonprod shared path| NPA[nonprod account-a workspace]
+  Changed -->|config/nonprod/account-b.tfvars<br/>or nonprod shared path| NPB[nonprod account-b workspace]
+  Changed -->|config/nonprod/account-c.tfvars<br/>or nonprod shared path| NPC[nonprod account-c workspace]
+
+  Changed -->|config/prod/account-c-eastus.tfvars| PCE[prod account-c eastus workspace]
+  Changed -->|config/prod/account-c-eastus2.tfvars| PCE2[prod account-c eastus2 workspace]
+  Changed -->|config/prod/account-d-centralus.tfvars| PDC[prod account-d centralus workspace]
+  Changed -->|config/prod/account-d-westus2.tfvars| PDW[prod account-d westus2 workspace]
+
+  Changed -->|envs/prod or modules shared change| ProdFleet[all affected prod regional workspaces]
+  Changed -->|envs/governance or DR config| Gov[governance workspace]
+
+  NPA --> AutoApply[non-prod auto apply]
+  NPB --> AutoApply
+  NPC --> AutoApply
+  PCE --> Manual[prod manual approval]
+  PCE2 --> Manual
+  PDC --> Manual
+  PDW --> Manual
+  ProdFleet --> Manual
+  Gov --> GovApply[governance approval as configured]
+```
 
 ## Local Command Pattern
 
