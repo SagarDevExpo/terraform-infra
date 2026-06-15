@@ -32,7 +32,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  Root[terraform-infra repo root<br/>docs, CI, scripts, policies] --> Envs[envs]
+  Root[terraform-infra gitlab repo root<br/>docs, CI, scripts, policies] --> Envs[envs]
   Root --> Config[config]
   Root --> Modules[modules]
   Root --> Policies[policies]
