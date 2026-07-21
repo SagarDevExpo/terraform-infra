@@ -31,6 +31,20 @@ resource "azurerm_log_analytics_workspace" "platform" {
   }
 }
 
+resource "azurerm_public_ip" "waf" {
+  name                = "${var.name_prefix}-waf-pip"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.management.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  zones               = var.availability_zones
+  tags                = var.tags
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "azurerm_virtual_network" "hub" {
   name                = "${var.name_prefix}-hub-vnet"
   location            = var.location
@@ -87,20 +101,6 @@ resource "azurerm_private_dns_zone_virtual_network_link" "hub" {
   tags                  = var.tags
 }
 
-resource "azurerm_public_ip" "waf" {
-  name                = "${var.name_prefix}-waf-pip"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.management.name
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  zones               = var.availability_zones
-  tags                = var.tags
-
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-
 resource "azurerm_policy_definition" "require_tags" {
   name         = "${var.name_prefix}-require-tags"
   policy_type  = "Custom"
@@ -108,14 +108,10 @@ resource "azurerm_policy_definition" "require_tags" {
   display_name = "CCOEHub required tags"
   description  = "Requires baseline tags on Azure resources."
 
-  parameters = jsonencode({
-    requiredTags = {
-      type = "Array"
-      metadata = {
-        displayName = "Required tag names"
-      }
-    }
-  })
+  # No parameters block: the required tag names are baked into the rule at
+  # plan time via the for loop over var.required_tags below. A separate
+  # parameters block is only needed when the policy consumer passes values
+  # at assignment time; here they come from Terraform variables instead.
 
   policy_rule = jsonencode({
     if = {
@@ -165,11 +161,7 @@ resource "azurerm_subscription_policy_assignment" "require_tags" {
   display_name         = "CCOEHub required tags"
   location             = var.location
 
-  parameters = jsonencode({
-    requiredTags = {
-      value = var.required_tags
-    }
-  })
+  # No parameters: the definition has no declared parameters to pass values to.
 
   identity {
     type = "SystemAssigned"

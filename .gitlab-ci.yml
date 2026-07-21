@@ -48,6 +48,17 @@ variables:
         - scripts/**/*
         - .gitlab-ci.yml
 
+# Personal / learning account (Phase-by-phase implementation on PI-00001 branch)
+.nonprod_account_personal_changes:
+  rules:
+    - changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-personal.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
 .prod_account_c_eastus_changes:
   rules:
     - changes:
@@ -183,6 +194,16 @@ compliance_nonprod_account_c:
   needs:
     - validate_nonprod
 
+compliance_nonprod_account_personal:
+  extends:
+    - .terraform_env
+    - .nonprod_account_personal_changes
+  stage: compliance
+  script:
+    - ./scripts/validate-compliance-for-approval.sh nonprod envs/nonprod config/nonprod/account-personal.tfvars
+  needs:
+    - validate_nonprod
+
 compliance_prod_account_c_eastus:
   extends:
     - .terraform_env
@@ -269,6 +290,23 @@ trigger_tfe_nonprod_account_c:
       changes:
         - envs/nonprod/**/*
         - config/nonprod/account-c.tfvars
+        - modules/**/*
+        - policies/**/*
+        - scripts/**/*
+        - .gitlab-ci.yml
+
+trigger_tfe_nonprod_account_personal:
+  extends: .trigger_tfe_env
+  stage: trigger_tfe
+  script:
+    - ./scripts/trigger-tfe-run.sh "$TFE_WORKSPACE_ID_NONPROD_ACCOUNT_PERSONAL" "GitLab ${CI_PIPELINE_ID} triggered nonprod account-personal run for ${CI_COMMIT_SHA}"
+  needs:
+    - compliance_nonprod_account_personal
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "PI-00001"'
+      changes:
+        - envs/nonprod/**/*
+        - config/nonprod/account-personal.tfvars
         - modules/**/*
         - policies/**/*
         - scripts/**/*
