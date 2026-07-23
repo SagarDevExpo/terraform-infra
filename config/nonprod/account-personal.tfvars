@@ -22,7 +22,7 @@ enabled_modules = {
   landing_zone = true
 
   # Phase 2 — spoke network (enable after landing zone is verified)
-  vnet = false
+  vnet = true
 
   # Phase 3 — registry + secrets (enable after vnet is verified)
   acr      = false
