@@ -133,12 +133,13 @@ module "acr" {
 
   source = "../../modules/acr"
 
-  registry_name           = var.acr_name
-  resource_group_name     = azurerm_resource_group.platform[0].name
-  location                = var.location
-  sku                     = "Standard"
-  admin_enabled           = false
-  zone_redundancy_enabled = false
+  registry_name                 = var.acr_name
+  resource_group_name           = azurerm_resource_group.platform[0].name
+  location                      = var.location
+  sku                           = "Standard"
+  admin_enabled                 = false
+  zone_redundancy_enabled       = false
+  public_network_access_enabled = true # Standard SKU; private endpoints restrict access at network level
 
   tags = local.tags
 }
