@@ -29,7 +29,7 @@ enabled_modules = {
   keyvault = true
 
   # Phase 4 — Kubernetes (enable after acr + keyvault are verified)
-  aks = false
+  aks = true
 
   # Phase 5 — add-ons (enable one at a time, after aks is verified)
   firewall          = false
