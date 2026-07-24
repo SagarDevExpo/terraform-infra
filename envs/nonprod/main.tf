@@ -154,7 +154,7 @@ module "keyvault" {
   location                      = var.location
   sku_name                      = "standard"
   enable_rbac_authorization     = true
-  public_network_access_enabled = false
+  public_network_access_enabled = true # Phase 5: flip to false once private endpoints are wired
 
   tags = local.tags
 }
