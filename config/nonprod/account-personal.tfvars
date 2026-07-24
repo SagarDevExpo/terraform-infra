@@ -26,7 +26,7 @@ enabled_modules = {
 
   # Phase 3 — registry + secrets (enable after vnet is verified)
   acr      = true
-  keyvault = false
+  keyvault = true
 
   # Phase 4 — Kubernetes (enable after acr + keyvault are verified)
   aks = false
