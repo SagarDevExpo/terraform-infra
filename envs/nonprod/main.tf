@@ -159,6 +159,16 @@ module "keyvault" {
   tags = local.tags
 }
 
+# Grant each object ID in var.keyvault_admin_object_ids full data-plane access.
+# Proper Terraform-managed alternative to ad-hoc CLI role assignments.
+resource "azurerm_role_assignment" "keyvault_admin" {
+  for_each = var.enabled_modules.keyvault ? toset(var.keyvault_admin_object_ids) : toset([])
+
+  scope                = module.keyvault[0].id
+  role_definition_name = "Key Vault Administrator"
+  principal_id         = each.value
+}
+
 module "aks" {
   count = var.enabled_modules.aks ? 1 : 0
 
