@@ -97,7 +97,7 @@ key_vault_name = "sagar-personal-kv-001" # globally unique across all of Azure
 # Phase 4 values — Kubernetes
 # service_cidr must NOT overlap hub (10.0.x) or spoke (10.1.x)
 # ------------------------------------------------------------
-kubernetes_version = "1.30.4"
+kubernetes_version = "1.35.2"
 service_cidr       = "10.2.0.0/16"
 dns_service_ip     = "10.2.0.10"
 
