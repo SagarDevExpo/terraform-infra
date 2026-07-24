@@ -105,8 +105,8 @@ aks_admin_group_object_ids = [] # fill in your Entra ID group object ID in Phase
 # Your personal Entra ID user object ID — grants Key Vault Administrator on the data plane.
 keyvault_admin_object_ids = ["8cf87920-3f8c-440f-8694-70b1b120d8f2"]
 system_node_pool = {
-  vm_size         = "Standard_B2s" # cheapest option for learning; 2 vCPU, 4GB RAM
-  node_count      = 1              # single node to stay within free trial limits
+  vm_size         = "Standard_D2s_v7" # cheapest allowed VM in this subscription (B-series not permitted in eastus free trial)
+  node_count      = 1
   os_disk_size_gb = 30
 }
 
