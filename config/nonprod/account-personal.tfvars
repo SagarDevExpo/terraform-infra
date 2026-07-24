@@ -54,9 +54,9 @@ enabled_modules = {
 # hub = the central network; firewall/bastion subnets must fit inside it.
 # ------------------------------------------------------------
 hub_address_space             = ["10.0.0.0/16"]
-firewall_subnet_prefix        = "10.0.0.0/26"   # /26 is the minimum required by Azure Firewall
+firewall_subnet_prefix        = "10.0.0.0/26" # /26 is the minimum required by Azure Firewall
 shared_services_subnet_prefix = "10.0.1.0/24"
-bastion_subnet_prefix         = "10.0.2.0/26"   # /26 is the minimum required by Azure Bastion
+bastion_subnet_prefix         = "10.0.2.0/26" # /26 is the minimum required by Azure Bastion
 
 private_dns_zones = [
   "privatelink.azurecr.io",
@@ -90,8 +90,8 @@ subnets = {
 # ------------------------------------------------------------
 # Phase 3 values — registry + key vault names must be globally unique
 # ------------------------------------------------------------
-acr_name       = "sagarpersonalacr001"    # globally unique across all of Azure
-key_vault_name = "sagar-personal-kv-001"  # globally unique across all of Azure
+acr_name       = "sagarpersonalacr001"   # globally unique across all of Azure
+key_vault_name = "sagar-personal-kv-001" # globally unique across all of Azure
 
 # ------------------------------------------------------------
 # Phase 4 values — Kubernetes
@@ -101,15 +101,15 @@ kubernetes_version = "1.30.4"
 service_cidr       = "10.2.0.0/16"
 dns_service_ip     = "10.2.0.10"
 
-aks_admin_group_object_ids = []  # fill in your Entra ID group object ID in Phase 4
+aks_admin_group_object_ids = [] # fill in your Entra ID group object ID in Phase 4
 
 system_node_pool = {
-  vm_size         = "Standard_B2s"  # cheapest option for learning; 2 vCPU, 4GB RAM
-  node_count      = 1               # single node to stay within free trial limits
+  vm_size         = "Standard_B2s" # cheapest option for learning; 2 vCPU, 4GB RAM
+  node_count      = 1              # single node to stay within free trial limits
   os_disk_size_gb = 30
 }
 
-user_node_pools = {}  # add workload pools when needed in Phase 4
+user_node_pools = {} # add workload pools when needed in Phase 4
 
 tags = {
   Owner       = "sagar"
