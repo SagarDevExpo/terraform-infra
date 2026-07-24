@@ -188,6 +188,7 @@ module "aks" {
   service_cidr           = var.service_cidr
   dns_service_ip         = var.dns_service_ip
   log_retention_days     = 90
+  availability_zones     = [] # non-prod: zone redundancy not required; B-series VMs don't support AZs
   tags                   = local.tags
 }
 
