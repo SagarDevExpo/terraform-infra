@@ -115,10 +115,25 @@ resource "azurerm_policy_definition" "require_tags" {
 
   policy_rule = jsonencode({
     if = {
-      anyOf = [
-        for tag_name in var.required_tags : {
-          field  = "tags['${tag_name}']"
-          exists = "false"
+      allOf = [
+        {
+          # Exclude resource types that Azure auto-creates internally and cannot be tagged.
+          # ContainerInsights solutions are provisioned by the AKS/OMS agent, not by Terraform.
+          not = {
+            field = "type"
+            in = [
+              "Microsoft.OperationsManagement/solutions",
+              "Microsoft.Resources/deployments"
+            ]
+          }
+        },
+        {
+          anyOf = [
+            for tag_name in var.required_tags : {
+              field  = "tags['${tag_name}']"
+              exists = "false"
+            }
+          ]
         }
       ]
     }
