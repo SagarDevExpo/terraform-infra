@@ -1,4 +1,8 @@
-image: hashicorp/terraform:1.9.0
+# hashicorp/terraform sets terraform as the Docker ENTRYPOINT.
+# entrypoint: [""] overrides it so GitLab can run shell scripts inside the container.
+image:
+  name: hashicorp/terraform:1.9.0
+  entrypoint: [""]
 
 stages:
   - validate
