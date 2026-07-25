@@ -128,6 +128,15 @@ resource "azurerm_policy_definition" "require_tags" {
           }
         },
         {
+          # Exclude the AKS managed node resource group (MC_*).
+          # Azure auto-creates VMSS, load balancers, NICs, disks, NSGs etc. in this RG
+          # and does not apply user-defined tags to them — they are Azure-internal resources.
+          not = {
+            value = "[resourceGroup().name]"
+            like  = "MC_*"
+          }
+        },
+        {
           anyOf = [
             for tag_name in var.required_tags : {
               field  = "tags['${tag_name}']"
