@@ -174,6 +174,14 @@ variable "aks_admin_group_object_ids" {
   default     = []
 }
 
+# Entra ID object IDs (users or groups) granted Key Vault Administrator on the data plane.
+# Required to read/write keys, secrets, and certificates via the portal or CLI.
+variable "keyvault_admin_object_ids" {
+  description = "Entra ID object IDs granted Key Vault Administrator role."
+  type        = list(string)
+  default     = []
+}
+
 variable "system_node_pool" {
   description = "AKS system node pool."
   type = object({

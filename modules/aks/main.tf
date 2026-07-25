@@ -39,8 +39,9 @@ resource "azurerm_kubernetes_cluster" "this" {
     type = "SystemAssigned"
   }
 
+  # Entra ID RBAC: only these groups get admin; K8s authz is driven by Azure roles.
+  # managed removed — deprecated in azurerm v4, defaults to true automatically.
   azure_active_directory_role_based_access_control {
-    managed                = true
     azure_rbac_enabled     = true
     admin_group_object_ids = var.admin_group_object_ids
   }

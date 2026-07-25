@@ -133,12 +133,13 @@ module "acr" {
 
   source = "../../modules/acr"
 
-  registry_name           = var.acr_name
-  resource_group_name     = azurerm_resource_group.platform[0].name
-  location                = var.location
-  sku                     = "Premium"
-  admin_enabled           = false
-  zone_redundancy_enabled = true
+  registry_name                 = var.acr_name
+  resource_group_name           = azurerm_resource_group.platform[0].name
+  location                      = var.location
+  sku                           = "Premium"
+  admin_enabled                 = false
+  zone_redundancy_enabled       = true
+  public_network_access_enabled = false # Premium SKU supports fully private; private endpoints required
 
   tags = local.tags
 }
@@ -177,7 +178,8 @@ module "aks" {
   service_cidr           = var.service_cidr
   dns_service_ip         = var.dns_service_ip
   log_retention_days     = 90
-  tags                   = local.tags
+  # availability_zones uses module default ["1","2","3"] — prod uses zone-capable VM SKUs
+  tags = local.tags
 }
 
 module "firewall" {

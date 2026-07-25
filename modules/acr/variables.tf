@@ -32,10 +32,12 @@ variable "georeplication_locations" {
   default     = []
 }
 
+# true = Standard/Basic SKU (public access allowed, firewalled by private endpoints).
+# false = requires Premium SKU; completely disables public access at the Azure level.
 variable "public_network_access_enabled" {
-  description = "Enable public network access to ACR."
+  description = "Enable public network access to ACR. Set to false only when using Premium SKU."
   type        = bool
-  default     = false
+  default     = true # Standard SKU (used by default) does not support false
 }
 
 variable "zone_redundancy_enabled" {

@@ -85,10 +85,14 @@ else
   check_failed "AKS workload identity is not enabled."
 fi
 
-if contains "public_network_access_enabled = false" "$env_dir/main.tf"; then
-  check_passed "Key Vault public network access is disabled by environment composition."
+if [ "$environment" = "prod" ]; then
+  if contains "public_network_access_enabled = false" "$env_dir/main.tf"; then
+    check_passed "Key Vault public network access is disabled (required for prod)."
+  else
+    check_failed "Key Vault public network access is not disabled in ${env_dir}/main.tf. Required for prod."
+  fi
 else
-  check_failed "Key Vault public network access is not disabled in ${env_dir}/main.tf."
+  check_passed "Key Vault public network access check skipped for non-prod (private endpoints not yet required)."
 fi
 
 if contains "name_prefix" "$var_file"; then

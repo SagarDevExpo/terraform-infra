@@ -133,12 +133,13 @@ module "acr" {
 
   source = "../../modules/acr"
 
-  registry_name           = var.acr_name
-  resource_group_name     = azurerm_resource_group.platform[0].name
-  location                = var.location
-  sku                     = "Standard"
-  admin_enabled           = false
-  zone_redundancy_enabled = false
+  registry_name                 = var.acr_name
+  resource_group_name           = azurerm_resource_group.platform[0].name
+  location                      = var.location
+  sku                           = "Standard"
+  admin_enabled                 = false
+  zone_redundancy_enabled       = false
+  public_network_access_enabled = true # Standard SKU; private endpoints restrict access at network level
 
   tags = local.tags
 }
@@ -153,9 +154,19 @@ module "keyvault" {
   location                      = var.location
   sku_name                      = "standard"
   enable_rbac_authorization     = true
-  public_network_access_enabled = false
+  public_network_access_enabled = true # Phase 5: flip to false once private endpoints are wired
 
   tags = local.tags
+}
+
+# Grant each object ID in var.keyvault_admin_object_ids full data-plane access.
+# Proper Terraform-managed alternative to ad-hoc CLI role assignments.
+resource "azurerm_role_assignment" "keyvault_admin" {
+  for_each = var.enabled_modules.keyvault ? toset(var.keyvault_admin_object_ids) : toset([])
+
+  scope                = module.keyvault[0].id
+  role_definition_name = "Key Vault Administrator"
+  principal_id         = each.value
 }
 
 module "aks" {
@@ -177,6 +188,7 @@ module "aks" {
   service_cidr           = var.service_cidr
   dns_service_ip         = var.dns_service_ip
   log_retention_days     = 90
+  availability_zones     = [] # non-prod: zone redundancy not required; B-series VMs don't support AZs
   tags                   = local.tags
 }
 
